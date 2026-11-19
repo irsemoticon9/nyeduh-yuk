@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    // Tema: dark default; set sebelum paint agar tanpa flash
+    if (localStorage.getItem("bl_theme") === "light") document.documentElement.setAttribute("data-theme", "light");
+  </script>
+  <meta name="theme-color" content="#14100D">
+  <title>Nyeduh Yuk!</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Calistoga&family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            shell: 'rgb(var(--shell) / <alpha-value>)',
+            surface: 'rgb(var(--surface) / <alpha-value>)',
+            sunk: 'rgb(var(--sunk) / <alpha-value>)',
+            edge: 'rgb(var(--edge) / <alpha-value>)',
+            ink: 'rgb(var(--ink) / <alpha-value>)',
+            muted: 'rgb(var(--muted) / <alpha-value>)',
+            crema: 'rgb(var(--crema) / <alpha-value>)',
+            cherry: 'rgb(var(--cherry) / <alpha-value>)',
+          },
+          fontFamily: {
+            display: ['Calistoga', 'Georgia', 'serif'],
+            sans: ['Cabin', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    :root {
+      --shell: 20 16 13;
+      --surface: 30 24 20;
+      --sunk: 25 20 16;
+      --edge: 57 44 35;
+      --ink: 244 234 224;
+      --muted: 183 166 149;
+      --crema: 233 180 76;
+      --cherry: 208 122 91;
+    }
+    [data-theme="light"] {
+      --shell: 243 237 228;
+      --surface: 252 250 245;
+      --sunk: 236 227 212;
+      --edge: 217 204 184;
+      --ink: 36 30 23;
+      --muted: 111 99 83;
+      --crema: 143 100 16;
+      --cherry: 168 71 43;
+    }
+    html { -webkit-text-size-adjust: 100%; }
+    body { background: rgb(var(--shell)); }
+    select option { background: rgb(var(--surface)); color: rgb(var(--ink)); }
+    a, button, select, input, label[for], [role="button"] { cursor: pointer; }
+    button:disabled, input:disabled, select:disabled { cursor: not-allowed; }
+    :focus-visible { outline: 2px solid rgb(var(--crema)); outline-offset: 2px; border-radius: 6px; }
+    ::selection { background: rgb(var(--crema)); color: rgb(var(--shell)); }
+    .num { font-variant-numeric: tabular-nums; }
+
+    /* Segmented control: selected state differs by weight + border + fill, not color alone */
+    .seg { border-color: rgb(var(--edge)); background: rgb(var(--surface)); color: rgb(var(--muted)); }
+    .seg[aria-pressed="true"] { border-color: rgb(var(--crema)); background: rgb(var(--crema) / 0.15); color: rgb(var(--ink)); }
+    .seg[aria-pressed="true"] .seg-dot { background: rgb(var(--crema)); }
+
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .rise { animation: rise .28s ease both; }
+
+    /* Steps reveal in sequence */
+    @keyframes stepIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .step-in { animation: stepIn .45s ease both; }
+
+    /* Loading cup: coffee fills, steam rises */
+    .cup {
+      width: 68px; height: 50px;
+      border: 3px solid rgb(var(--crema));
+      border-radius: 8px 8px 16px 16px;
+      background: rgb(var(--surface));
+      position: relative; overflow: hidden;
+    }
+    .cup::before {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(rgb(var(--crema)), rgb(var(--cherry)));
+      animation: fill 1.4s ease-in-out infinite alternate;
+    }
+    @keyframes fill { from { transform: translateY(82%); } to { transform: translateY(12%); } }
+    .wisp {
+      width: 5px; height: 12px;
+      background: rgb(var(--ink));
+      border-radius: 50%;
+      filter: blur(1.5px);
+      opacity: 0;
+      animation: steamRise 1.8s ease-in-out infinite;
+    }
+    @keyframes steamRise {
+      0% { transform: translateY(4px); opacity: 0; }
+      40% { opacity: .55; }
+      100% { transform: translateY(-12px); opacity: 0; }
+    }
+
+    /* Press feedback: every tappable button squashes on press */
+    button:not(:disabled) { transition: transform .13s ease, border-color .15s ease, background-color .15s, color .15s; }
+    button:not(:disabled):active { transform: scale(.96); }
+    .lift:hover { transform: translateY(-1px); }
+    .lift:active { transform: translateY(0) scale(.97); }
+
+    /* Ripple (attached via JS) */
+    .mode-btn, .seg, #btnProcess, #btnCopy { position: relative; overflow: hidden; }
+    .ripple { position: absolute; border-radius: 9999px; background: rgb(var(--crema) / .22); transform: scale(0); animation: ripple .55s ease-out forwards; pointer-events: none; }
+    @keyframes ripple { to { transform: scale(1); opacity: 0; } }
+
+    /* Badge pop on render */
+    @keyframes pop { 0% { transform: scale(.5); opacity: 0; } 70% { transform: scale(1.07); } 100% { transform: scale(1); opacity: 1; } }
+    .pop { animation: pop .4s ease-out both; }
+
+    /* Stat cards stagger in */
+    .stat-card { animation: rise .3s ease both; }
+    .stat-grid > .stat-card:nth-child(1) { animation-delay: .05s; }
+    .stat-grid > .stat-card:nth-child(2) { animation-delay: .1s; }
+    .stat-grid > .stat-card:nth-child(3) { animation-delay: .15s; }
+    .stat-grid > .stat-card:nth-child(4) { animation-delay: .2s; }
+    .stat-grid > .stat-card:nth-child(5) { animation-delay: .25s; }
+    .stat-grid > .stat-card:nth-child(6) { animation-delay: .3s; }
+
+    /* Hero cup: bob + crema shimmer line under title */
+    @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+    .cup, .cup-bob { animation: bob 1.8s ease-in-out infinite; }
+    .h1-grad { background: linear-gradient(105deg, rgb(var(--ink)) 25%, rgb(var(--crema)) 70%, rgb(var(--cherry))); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .crema-line { height: 2px; width: 96px; border-radius: 1px; background: linear-gradient(90deg, transparent, rgb(var(--crema)), rgb(var(--cherry)), transparent); background-size: 200% 100%; animation: shimmer 2.6s linear infinite; opacity: .75; }
+    @keyframes shimmer { to { background-position: 200% 0; } }
+
+    /* Ikon cup hero: warna ikut tema */
+    #cremaG .gs1 { stop-color: rgb(var(--crema)); }
+    #cremaG .gs2 { stop-color: rgb(var(--cherry)); }
+    .cupBody { fill: rgb(var(--surface)); stroke: rgb(var(--crema)); stroke-width: 2; }
+    .cupHandle { fill: none; stroke: rgb(var(--crema)); stroke-width: 2; stroke-linecap: round; }
+    .cupSaucer { stroke: rgb(var(--edge)); stroke-width: 2; stroke-linecap: round; }
+
+    /* Ikon toggle tema: bulan default (dark), matahari saat light */
+    .icon-sun { display: none; }
+    [data-theme="light"] .icon-sun { display: block; }
+    [data-theme="light"] .icon-moon { display: none; }
+
+    /* Step timeline: connecting line + fill progress + dots light up */
+    .tl::before { content: ""; position: absolute; left: 11px; top: 12px; bottom: 12px; width: 2px; background: rgb(var(--edge)); border-radius: 1px; }
+    .tl-fill { position: absolute; left: 11px; top: 12px; width: 2px; height: calc(100% - 24px); transform-origin: top; transform: scaleY(0); background: linear-gradient(rgb(var(--crema)), rgb(var(--cherry))); border-radius: 1px; animation: tlFill var(--tl, 2.5s) ease-out both; }
+    @keyframes tlFill { to { transform: scaleY(1); } }
+    .tl-dot { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 9999px; border: 1.5px solid rgb(var(--edge)); background: rgb(var(--surface)); color: rgb(var(--crema)); position: relative; z-index: 1; animation: dotOn .35s ease both; }
+    @keyframes dotOn { from { border-color: rgb(var(--edge)); background: rgb(var(--surface)); } to { border-color: rgb(var(--crema)); background: rgb(var(--crema) / 0.15); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .rise, .step-in, .stat-card, .pop, .wisp { animation: none; }
+      .cup, .cup-bob { animation: none; }
+      .cup::before { animation: none; transform: translateY(30%); }
+      .crema-line, .tl-fill { animation: none; }
+      .tl-fill { transform: none; }
+      .tl-dot { animation: none; border-color: rgb(var(--crema)); background: rgb(var(--crema) / 0.15); }
+      * { scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body class="font-sans text-ink min-h-screen antialiased">
+
+  <header class="mx-auto w-full max-w-lg px-4 pt-8 pb-6">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="relative mb-2 inline-block">
+          <div class="absolute -top-3 left-1/2 flex -translate-x-1/2 gap-1" aria-hidden="true">
+            <span class="wisp" style="animation-delay:.1s"></span>
+            <span class="wisp" style="animation-delay:.7s"></span>
+            <span class="wisp" style="animation-delay:1.3s"></span>
+          </div>
+          <svg class="cup-bob" width="46" height="44" viewBox="0 0 48 46" aria-hidden="true">
+            <defs>
+              <linearGradient id="cremaG" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#E9B44C"/><stop offset="1" stop-color="#D07A5B"/>
+              </linearGradient>
+            </defs>
+            <path d="M9 19h30a2 2 0 0 1 2 2v6a11 11 0 0 1-11 11H18A11 11 0 0 1 7 27v-6a2 2 0 0 1 2-2z" fill="#1E1814" stroke="#E9B44C" stroke-width="2"/>
+            <ellipse cx="24" cy="19.5" rx="16" ry="2.4" fill="url(#cremaG)"/>
+            <path d="M41 24h1.5a4 4 0 0 1 0 8H41" fill="none" stroke="#E9B44C" stroke-width="2" stroke-linecap="round"/>
+            <path d="M11 42h26" stroke="#392C23" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h1 class="h1-grad font-display text-[2rem] leading-none">Nyeduh Yuk!</h1>
+        <div class="crema-line mt-2.5"></div>
+        <p class="mt-2 flex items-center gap-1.5 text-[13px] text-muted">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#E9B44C" stroke-width="1.6" aria-hidden="true">
+            <ellipse cx="12" cy="12" rx="7" ry="9.5" transform="rotate(28 12 12)"/>
+            <path d="M8.2 6.6c3 3.4 4.6 7.2 5.2 10.8"/>
+          </svg>
+          Catatan seduh pribadi
+        </p>
+        <p class="mt-1 text-[12px] text-muted">By Irse</p>
+      </div>
+      <div class="flex items-center gap-1">
+        <button id="btnTheme" aria-label="Ganti tema (gelap/terang)"
+          class="grid h-11 w-11 place-items-center rounded-xl border border-edge bg-surface text-muted transition-colors hover:text-ink hover:border-crema/60">
+          <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/>
+          </svg>
+          <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>
+          </svg>
+        </button>
+        <button id="btnSettings" aria-label="Pengaturan API key" aria-expanded="false" aria-controls="settingsPanel"
+          class="grid h-11 w-11 place-items-center rounded-xl border border-edge bg-surface text-muted transition-colors hover:text-ink hover:border-crema/60">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <circle cx="12" cy="12" r="3.2"/>
+            <path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l1.7-1.3-1.9-3.3-2 .8a7.7 7.7 0 0 0-2.6-1.5L14.3 3h-3.8l-.3 2.2a7.7 7.7 0 0 0-2.6 1.5l-2-.8L3.7 9.2l1.7 1.3a7.6 7.6 0 0 0 0 3l-1.7 1.3 1.9 3.3 2-.8a7.7 7.7 0 0 0 2.6 1.5l.3 2.2h3.8l.3-2.2a7.7 7.7 0 0 0 2.6-1.5l2 .8 1.9-3.3z"/>
+          </svg>
+        </button>
+        <button id="btnHistory" aria-label="Riwayat seduh" aria-expanded="false" aria-controls="historyPanel"
+          class="grid h-11 w-11 place-items-center rounded-xl border border-edge bg-surface text-muted transition-colors hover:text-ink hover:border-crema/60">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M3.5 12a8.5 8.5 0 1 0 2.4-5.9"/>
+            <path d="M3 4v4.4h4.4"/>
+            <path d="M12 8v4.6l3.4 1.8"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto w-full max-w-lg px-4 pb-48">
+
+    <!-- Settings -->
+    <section id="settingsPanel" class="hidden mb-6 rounded-2xl border border-edge bg-surface p-4">
+      <h2 class="font-display text-lg text-ink">Gemini AI</h2>
+      <p class="mt-1 text-[12px] leading-relaxed text-muted">
+        Opsional. Tanpa key, resep disusun engine lokal dan tetap jalan offline.
+      </p>
+
+      <div class="mt-4">
+        <span class="text-[12px] font-semibold text-muted">API keys</span>
+        <div id="keyList" class="mt-2 space-y-1.5"></div>
+        <div class="mt-2 flex gap-2">
+          <input id="geminiKey" type="password" autocomplete="off" aria-label="API key baru" placeholder="AQ.xxx atau AIza.xxx"
+            class="h-12 min-w-0 flex-1 rounded-xl border border-edge bg-sunk px-3 text-[15px] text-ink placeholder:text-muted/70 focus:border-crema focus:outline-none">
+          <button id="btnAddKey" class="h-12 shrink-0 rounded-xl border border-edge px-4 text-[13px] font-semibold text-ink transition-colors hover:border-crema hover:text-crema">
+            Tambah
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <div class="flex items-center justify-between">
+          <span class="text-[12px] font-semibold text-muted">Model</span>
+          <button id="btnDetectModels" class="min-h-[32px] text-[12px] font-semibold text-crema hover:underline">Cek tersedia</button>
+        </div>
+        <div id="modelList" class="mt-2 space-y-1.5"></div>
+      </div>
+
+      <div class="mt-4 flex gap-2">
+        <button id="btnSaveKey" class="h-12 flex-1 rounded-xl bg-crema text-[13px] font-bold text-[#221607] transition-colors hover:brightness-110">
+          Simpan
+        </button>
+        <button id="btnTestKey" class="h-12 flex-1 rounded-xl border border-edge text-[13px] font-semibold text-muted transition-colors hover:text-ink hover:border-crema/60">
+          Uji
+        </button>
+      </div>
+      <p id="keyStatus" class="mt-3 text-[12px] leading-relaxed text-muted" role="status" aria-live="polite">
+        Tanpa API key: resep disusun engine lokal.
+      </p>
+    </section>
+
+    <!-- Mode -->
+    <section aria-labelledby="modeLabel" class="mb-6">
+      <div class="flex items-baseline justify-between">
+        <h2 id="modeLabel" class="text-[13px] font-semibold text-muted">Mode seduh</h2>
+        <span id="hint" class="text-[12px] text-muted">Pilih satu</span>
+      </div>
+      <div class="mt-2 grid grid-cols-2 gap-2" role="group" aria-labelledby="modeLabel">
+        <button type="button" data-mode="hot" aria-pressed="true"
+          class="mode-btn seg lift flex min-h-[64px] flex-col items-start justify-center gap-1 rounded-2xl border px-4 text-left transition-colors">
+          <span class="text-[15px] font-semibold">Seduh panas</span>
+          <span class="text-[12px] opacity-70">V60, immersion, kalita</span>
+        </button>
+        <button type="button" data-mode="iced" aria-pressed="false"
+          class="mode-btn seg lift flex min-h-[64px] flex-col items-start justify-center gap-1 rounded-2xl border px-4 text-left transition-colors">
+          <span class="text-[15px] font-semibold">Es kopi</span>
+          <span class="text-[12px] opacity-70">Flash chill di server</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Parameter -->
+    <section aria-labelledby="paramLabel" class="mb-6 rounded-2xl border border-edge bg-surface p-4">
+      <h2 id="paramLabel" class="font-display text-lg text-ink">Biji dan profil</h2>
+
+      <div class="mt-4 space-y-4">
+        <div>
+          <label for="fName" class="mb-1.5 block text-[12px] font-semibold text-muted">Nama kopi</label>
+          <input id="fName" type="text" value="Arabika Gayo" placeholder="cth. Arabika Gayo, Ethiopia Guji"
+            class="h-12 w-full rounded-xl border border-edge bg-sunk px-3 text-[15px] text-ink placeholder:text-muted/70 focus:border-crema focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="fAmount" class="mb-1.5 block text-[12px] font-semibold text-muted">Dosis (g)</label>
+            <input id="fAmount" type="number" inputmode="decimal" min="5" max="60" value="15"
+              class="num h-12 w-full rounded-xl border border-edge bg-sunk px-3 text-[15px] text-ink focus:border-crema focus:outline-none">
+          </div>
+          <div>
+            <label for="fWater" class="mb-1.5 block text-[12px] font-semibold text-muted">Air</label>
+            <select id="fWater" class="h-12 w-full rounded-xl border border-edge bg-sunk px-3 text-[15px] text-ink focus:border-crema focus:outline-none">
+              <option>Aqua (Danone)</option><option>Le Minerale</option><option>Nestle Pure Life</option>
+              <option>Cleo (Distilled/RO)</option><option>Amidis (Distilled)</option><option>Lainnya (Input PPM)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="fProcess" class="mb-1.5 block text-[12px] font-semibold text-muted">Processing</label>
+          <select id="fProcess" class="h-12 w-full rounded-xl border border-edge bg-sunk px-3 text-[15px] text-ink focus:border-crema focus:outline-none">
+            <option>Washed</option><option>Natural</option><option>Honey</option>
+            <option>Anaerobic / Fermented</option><option>Wet Hulled (Giling Basah)</option>
+            <option>Experimental / Infused</option><option>Lainnya (Input Manual)</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="fVariety" class="mb-1.5 block text-[12px] font-semibold text-muted">Varietas</label>
+          <select id="fVariety" class="h-12 w-full rounded-xl border border-edge bg-sunk px-3 text-[15px] text-ink focus:border-crema focus:outline-none">
+            <option>Abyssinia</option><option>Bourbon</option><option>Catimor</option>
+            <option>Caturra / Catuai</option><option>Ethiopian Heirlooms</option><option>Geisha</option>
+            <option>P88</option><option>Robusta (Fine Robusta)</option><option>S795 (Jember)</option>
+            <option>Sigararutang / Ateng</option><option>Typica</option><option>Mix Variety</option>
+            <option>Lainnya (Input Manual)</option>
+          </select>
+        </div>
+
+        <div>
+          <span class="mb-1.5 block text-[12px] font-semibold text-muted">Tingkat sangrai</span>
+          <div class="grid grid-cols-3 gap-2" id="roastGroup" role="group" aria-label="Tingkat sangrai">
+            <button type="button" data-roast="LIGHT" aria-pressed="false"
+              class="seg min-h-[48px] rounded-xl border text-[13px] font-semibold transition-colors">Light</button>
+            <button type="button" data-roast="MEDIUM" aria-pressed="true"
+              class="seg min-h-[48px] rounded-xl border text-[13px] font-semibold transition-colors">Medium</button>
+            <button type="button" data-roast="DARK" aria-pressed="false"
+              class="seg min-h-[48px] rounded-xl border text-[13px] font-semibold transition-colors">Dark</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hardware -->
+    <section aria-labelledby="hwLabel" class="mb-6 rounded-2xl border border-edge bg-surface p-4">
+      <h2 id="hwLabel" class="font-display text-lg text-ink">Perangkat</h2>
+
+      <div class="mt-4 space-y-4">
+        <div>
+          <label for="fBrewer" class="mb-1.5 block text-[12px] font-semibold text-muted">Dripper</label>
+          <select id="fBrewer" class="h-12 w-full rounded-xl border border-edge bg-sunk px-3 text-[15px] text-ink focus:border-crema focus:outline-none"></select>
+        </div>
+        <div>
+          <label for="fGrinder" class="mb-1.5 block text-[12px] font-semibold text-muted">Grinder</label>
+          <select id="fGrinder" class="h-12 w-full rounded-xl border border-edge bg-sunk px-3 text-[15px] text-ink focus:border-crema focus:outline-none"></select>
+        </div>
+
+        <div>
+          <span class="mb-1.5 block text-[12px] font-semibold text-muted">Target rasa</span>
+          <div class="grid grid-cols-2 gap-2" id="profileGroup" role="group" aria-label="Target rasa">
+            <button type="button" data-profile="balance" aria-pressed="true"
+              class="seg min-h-[48px] rounded-xl border px-3 text-[13px] font-semibold transition-colors">Balance &amp; clean</button>
+            <button type="button" data-profile="sweet" aria-pressed="false"
+              class="seg min-h-[48px] rounded-xl border px-3 text-[13px] font-semibold transition-colors">Lebih manis</button>
+            <button type="button" data-profile="acid" aria-pressed="false"
+              class="seg min-h-[48px] rounded-xl border px-3 text-[13px] font-semibold transition-colors">Lebih asam</button>
+            <button type="button" data-profile="body" aria-pressed="false"
+              class="seg min-h-[48px] rounded-xl border px-3 text-[13px] font-semibold transition-colors">Lebih body</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Result -->
+    <section id="result" class="hidden" aria-live="polite"></section>
+
+    <!-- History -->
+    <section id="historyPanel" class="hidden mt-8"></section>
+
+  </main>
+
+  <!-- Sticky action bar: keeps the primary action reachable on a phone -->
+  <div class="fixed inset-x-0 bottom-0 z-30 border-t border-edge bg-shell/95 backdrop-blur-sm">
+    <div class="mx-auto flex w-full max-w-lg items-center gap-3 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
+      <div class="min-w-0 flex-1">
+        <p id="actionMode" class="truncate text-[13px] font-semibold text-ink">Seduh panas</p>
+        <p id="actionWater" class="num truncate text-[11px] text-crema">≈ 225 g air · 1:15</p>
+      </div>
+      <button id="btnProcess"
+        class="lift h-12 shrink-0 rounded-xl bg-crema px-5 text-[14px] font-bold text-[#221607] transition-colors hover:brightness-110 disabled:opacity-60">
+        Proses resep
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loadingOverlay" class="hidden fixed inset-0 z-40 grid place-items-center bg-shell/90 px-6 backdrop-blur-sm" role="status" aria-live="polite">
+    <div class="text-center">
+      <div class="relative mx-auto mb-4">
+        <div class="absolute -top-3 left-1/2 flex -translate-x-1/2 gap-1.5" aria-hidden="true">
+          <span class="wisp"></span>
+          <span class="wisp" style="animation-delay:.4s"></span>
+          <span class="wisp" style="animation-delay:.8s"></span>
+        </div>
+        <div class="cup"></div>
+      </div>
+      <p class="text-[14px] font-semibold text-ink">Menyusun resep</p>
+      <p class="mt-1 text-[12px] text-muted">Bertanya ke Gemini, mohon tunggu</p>
+    </div>
+  </div>
+
+  <script src="keys.js"></script>
+  <script src="gemini.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
