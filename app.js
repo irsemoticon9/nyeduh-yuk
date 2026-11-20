@@ -101,18 +101,38 @@ function bindSeg(groupId, attr, setter) {
 bindSeg("roastGroup", "roast", v => { roast = v; });
 bindSeg("profileGroup", "profile", v => { profile = v; });
 
+// Kolom input manual muncul saat opsi "Lainnya" dipilih
+function bindCustom(selectId, wrapId) {
+  const sel = document.getElementById(selectId);
+  const wrap = document.getElementById(wrapId);
+  if (!sel || !wrap) return;
+  const sync = () => wrap.classList.toggle("hidden", !sel.value.startsWith("Lainnya"));
+  sel.addEventListener("change", sync);
+  sync();
+}
+bindCustom("fProcess", "wrapProcessCustom");
+bindCustom("fVariety", "wrapVarietyCustom");
+bindCustom("fWater", "wrapWaterCustom");
+
 // ---------- PARAMS ----------
+function manualValue(selectId, inputId, fmt) {
+  const sel = document.getElementById(selectId);
+  if (!sel.value.startsWith("Lainnya")) return sel.value;
+  const raw = document.getElementById(inputId).value.trim();
+  if (!raw) return sel.value;
+  return fmt ? fmt(raw) : raw;
+}
 function collectParams(mode) {
   return {
     mode,
     origin: document.getElementById("fName").value.trim(),
     dose: Math.max(5, Math.min(60, parseFloat(document.getElementById("fAmount").value) || 15)),
-    process: document.getElementById("fProcess").value,
-    variety: document.getElementById("fVariety").value,
+    process: manualValue("fProcess", "fProcessCustom"),
+    variety: manualValue("fVariety", "fVarietyCustom"),
     roast,
     brewer: document.getElementById("fBrewer").value,
     grinder: document.getElementById("fGrinder").value,
-    water: document.getElementById("fWater").value,
+    water: manualValue("fWater", "fWaterCustom", v => `Custom (${Math.max(0, Math.min(300, parseFloat(v) || 0))} ppm)`),
     profile: profile,
     profileLabel: PROFILE_LABEL[profile],
   };
@@ -251,6 +271,20 @@ function fmtTime(s) {
 }
 
 // ---------- GENERATE (hybrid) ----------
+const BREW_MSGS = ["Menggiling biji kopi…", "Memanaskan air…", "Blooming dulu…", "Menuang perlahan…", "Menyusun resep kamu…"];
+let brewTimer = null;
+function startBrewAnim() {
+  const el = document.getElementById("brewStatus");
+  let i = 0;
+  const show = () => {
+    el.textContent = BREW_MSGS[i];
+    el.classList.remove("rise"); void el.offsetWidth; el.classList.add("rise");
+  };
+  show();
+  brewTimer = setInterval(() => { i = (i + 1) % BREW_MSGS.length; show(); }, 1500);
+}
+function stopBrewAnim() { clearInterval(brewTimer); brewTimer = null; }
+
 async function generateRecipe(mode) {
   const p = collectParams(mode);
   const label = mode === "hot" ? "SEDUH PANAS" : "ES KOPI";
@@ -258,6 +292,7 @@ async function generateRecipe(mode) {
   if (geminiKeys().length) {
     const overlay = document.getElementById("loadingOverlay");
     overlay.classList.remove("hidden");
+    startBrewAnim();
     let recipe;
     try {
       const ai = await callGemini(p);
@@ -267,6 +302,7 @@ async function generateRecipe(mode) {
       recipe.source = "LOCAL";
       recipe.aiError = e.message;
     } finally {
+      stopBrewAnim();
       overlay.classList.add("hidden");
     }
     renderRecipe(recipe);

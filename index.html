@@ -77,21 +77,20 @@
     @keyframes stepIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
     .step-in { animation: stepIn .45s ease both; }
 
-    /* Loading cup: coffee fills, steam rises */
-    .cup {
-      width: 68px; height: 50px;
-      border: 3px solid rgb(var(--crema));
-      border-radius: 8px 8px 16px 16px;
-      background: rgb(var(--surface));
-      position: relative; overflow: hidden;
-    }
-    .cup::before {
-      content: "";
-      position: absolute; inset: 0;
-      background: linear-gradient(rgb(var(--crema)), rgb(var(--cherry)));
-      animation: fill 1.4s ease-in-out infinite alternate;
-    }
-    @keyframes fill { from { transform: translateY(82%); } to { transform: translateY(12%); } }
+    /* Animasi nyeduh di overlay: kettle menuang, bloom, tetesan, kopi naik, uap */
+    .kettle-bob { animation: bob 2.2s ease-in-out infinite; }
+    .brew-stream { stroke: rgb(var(--crema)); stroke-width: 3.5; stroke-linecap: round; fill: none; stroke-dasharray: 5 7; animation: pourFlow .5s linear infinite; }
+    .brew-stream-core { stroke: rgb(var(--crema) / .35); stroke-width: 2; stroke-linecap: round; fill: none; }
+    @keyframes pourFlow { to { stroke-dashoffset: -24; } }
+    .brew-drip { fill: rgb(var(--cherry)); animation: dripFall .9s ease-in infinite; }
+    @keyframes dripFall { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(38px); opacity: 0; } }
+    .brew-coffee { transform-box: fill-box; animation: brewFill 3.2s ease-in-out infinite alternate; }
+    @keyframes brewFill { from { transform: translateY(68%); } to { transform: translateY(16%); } }
+    .brew-bloom { fill: rgb(var(--crema)); animation: bloom 1.6s ease-in-out infinite; }
+    @keyframes bloom { 0%, 100% { transform: translateY(0); opacity: .25; } 50% { transform: translateY(-3px); opacity: .9; } }
+    .brew-steam { fill: rgb(var(--ink)); filter: blur(1.5px); opacity: 0; animation: steamRise 1.8s ease-in-out infinite; }
+    #brewG .gs1 { stop-color: rgb(var(--crema)); }
+    #brewG .gs2 { stop-color: rgb(var(--cherry)); }
     .wisp {
       width: 5px; height: 12px;
       background: rgb(var(--ink));
@@ -132,7 +131,7 @@
 
     /* Hero cup: bob + crema shimmer line under title */
     @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-    .cup, .cup-bob { animation: bob 1.8s ease-in-out infinite; }
+    .cup-bob { animation: bob 1.8s ease-in-out infinite; }
     .h1-grad { background: linear-gradient(105deg, rgb(var(--ink)) 25%, rgb(var(--crema)) 70%, rgb(var(--cherry))); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .crema-line { height: 2px; width: 96px; border-radius: 1px; background: linear-gradient(90deg, transparent, rgb(var(--crema)), rgb(var(--cherry)), transparent); background-size: 200% 100%; animation: shimmer 2.6s linear infinite; opacity: .75; }
     @keyframes shimmer { to { background-position: 200% 0; } }
@@ -158,11 +157,15 @@
 
     @media (prefers-reduced-motion: reduce) {
       .rise, .step-in, .stat-card, .pop, .wisp { animation: none; }
-      .cup, .cup-bob { animation: none; }
-      .cup::before { animation: none; transform: translateY(30%); }
+      .cup-bob { animation: none; }
       .crema-line, .tl-fill { animation: none; }
       .tl-fill { transform: none; }
       .tl-dot { animation: none; border-color: rgb(var(--crema)); background: rgb(var(--crema) / 0.15); }
+      .brew-scene * { animation: none; }
+      .brew-stream { stroke-dasharray: none; }
+      .brew-coffee { transform: translateY(35%); }
+      .brew-drip { opacity: 0; }
+      .brew-steam { opacity: .35; }
       * { scroll-behavior: auto !important; }
     }
   </style>
@@ -318,6 +321,11 @@
             </select>
           </div>
         </div>
+        <div id="wrapWaterCustom" class="hidden rise">
+          <label for="fWaterCustom" class="mb-1.5 block text-[12px] font-semibold text-crema">TDS air (ppm)</label>
+          <input id="fWaterCustom" type="number" inputmode="numeric" min="0" max="300" placeholder="cth. 80"
+            class="num h-12 w-full rounded-xl border border-edge bg-sunk px-3 text-[15px] text-ink placeholder:text-muted/70 focus:border-crema focus:outline-none">
+        </div>
 
         <div>
           <label for="fProcess" class="mb-1.5 block text-[12px] font-semibold text-muted">Processing</label>
@@ -326,6 +334,11 @@
             <option>Anaerobic / Fermented</option><option>Wet Hulled (Giling Basah)</option>
             <option>Experimental / Infused</option><option>Lainnya (Input Manual)</option>
           </select>
+          <div id="wrapProcessCustom" class="hidden rise mt-2">
+            <label for="fProcessCustom" class="mb-1.5 block text-[12px] font-semibold text-crema">Processing manual</label>
+            <input id="fProcessCustom" type="text" placeholder="cth. Anaerobic 21 hari, honey 2 minggu"
+              class="h-12 w-full rounded-xl border border-edge bg-sunk px-3 text-[15px] text-ink placeholder:text-muted/70 focus:border-crema focus:outline-none">
+          </div>
         </div>
 
         <div>
@@ -337,6 +350,11 @@
             <option>Sigararutang / Ateng</option><option>Typica</option><option>Mix Variety</option>
             <option>Lainnya (Input Manual)</option>
           </select>
+          <div id="wrapVarietyCustom" class="hidden rise mt-2">
+            <label for="fVarietyCustom" class="mb-1.5 block text-[12px] font-semibold text-crema">Varietas manual</label>
+            <input id="fVarietyCustom" type="text" placeholder="cth. Heirloom Sidamo, Red Bourbon"
+              class="h-12 w-full rounded-xl border border-edge bg-sunk px-3 text-[15px] text-ink placeholder:text-muted/70 focus:border-crema focus:outline-none">
+          </div>
         </div>
 
         <div>
@@ -408,16 +426,47 @@
   <!-- Loading -->
   <div id="loadingOverlay" class="hidden fixed inset-0 z-40 grid place-items-center bg-shell/90 px-6 backdrop-blur-sm" role="status" aria-live="polite">
     <div class="text-center">
-      <div class="relative mx-auto mb-4">
-        <div class="absolute -top-3 left-1/2 flex -translate-x-1/2 gap-1.5" aria-hidden="true">
-          <span class="wisp"></span>
-          <span class="wisp" style="animation-delay:.4s"></span>
-          <span class="wisp" style="animation-delay:.8s"></span>
-        </div>
-        <div class="cup"></div>
-      </div>
-      <p class="text-[14px] font-semibold text-ink">Menyusun resep</p>
-      <p class="mt-1 text-[12px] text-muted">Bertanya ke Gemini, mohon tunggu</p>
+      <svg class="brew-scene mx-auto mb-3" width="190" viewBox="0 0 200 230" aria-hidden="true">
+        <defs>
+          <linearGradient id="brewG" x1="0" y1="0" x2="0" y2="1">
+            <stop class="gs1" offset="0"/><stop class="gs2" offset="1"/>
+          </linearGradient>
+          <clipPath id="cupClip"><rect x="73" y="153" width="54" height="50" rx="8"/></clipPath>
+        </defs>
+        <!-- kettle + aliran air (satu grup biar ikut bob) -->
+        <g class="kettle-bob">
+          <g transform="rotate(-6 34 40)">
+            <path d="M18 26 C18 12 50 12 50 26" class="cupHandle"/>
+            <rect x="8" y="26" width="52" height="28" rx="7" class="cupBody"/>
+            <circle cx="34" cy="22" r="3" fill="rgb(var(--crema))"/>
+            <path d="M60 46 C74 46 72 28 86 36" class="cupHandle" stroke-width="4"/>
+            <path d="M86 38 C92 50 98 60 100 76" class="brew-stream-core"/>
+            <path d="M86 38 C92 50 98 60 100 76" class="brew-stream"/>
+          </g>
+        </g>
+        <!-- uap di atas rim dripper -->
+        <ellipse class="brew-steam" cx="120" cy="70" rx="2.5" ry="6"/>
+        <ellipse class="brew-steam" cx="128" cy="66" rx="2.5" ry="6" style="animation-delay:.5s"/>
+        <ellipse class="brew-steam" cx="136" cy="70" rx="2.5" ry="6" style="animation-delay:1s"/>
+        <!-- dripper V60 + bloom -->
+        <path d="M64 78 L136 78 L106 128 L94 128 Z" class="cupBody"/>
+        <path d="M78 82 L96 122 M122 82 L104 122" stroke="rgb(var(--edge))" stroke-width="1.5" opacity=".8"/>
+        <ellipse cx="100" cy="82" rx="28" ry="5" fill="rgb(var(--cherry))" opacity=".85"/>
+        <circle class="brew-bloom" cx="90" cy="81" r="2"/>
+        <circle class="brew-bloom" cx="100" cy="80" r="2" style="animation-delay:.4s"/>
+        <circle class="brew-bloom" cx="110" cy="81" r="2" style="animation-delay:.8s"/>
+        <!-- tetesan ke cup -->
+        <circle class="brew-drip" cx="100" cy="132" r="2.5"/>
+        <circle class="brew-drip" cx="100" cy="132" r="2.5" style="animation-delay:.3s"/>
+        <circle class="brew-drip" cx="100" cy="132" r="2.5" style="animation-delay:.6s"/>
+        <!-- cup + kopi naik -->
+        <path d="M130 164 c14 2 14 26 0 28" class="cupHandle"/>
+        <rect x="70" y="150" width="60" height="56" rx="10" class="cupBody"/>
+        <g clip-path="url(#cupClip)">
+          <rect class="brew-coffee" x="73" y="153" width="54" height="50" fill="url(#brewG)"/>
+        </g>
+      </svg>
+      <p id="brewStatus" class="text-[14px] font-semibold text-ink">Menggiling biji kopi…</p>
     </div>
   </div>
 
